@@ -1,450 +1,210 @@
-
 import streamlit as st
-import hashlib, json, random, time
-from datetime import date, datetime
+import hashlib, json, time
+from datetime import datetime
 
-st.set_page_config(page_title="Blockchain Virtual Lab", page_icon="⛓️", layout="wide")
+st.set_page_config(page_title="Blockchain vs Conventional Database", page_icon="⛓️", layout="wide")
 
-def h(obj):
-    return hashlib.sha256(json.dumps(obj, sort_keys=True, default=str).encode()).hexdigest()
-
-def short(x, n=12):
-    return str(x)[:n] + "…"
-
+def sha(x): return hashlib.sha256(str(x).encode()).hexdigest()
 def init():
-    defaults = {
-        "chain": [{"index":0,"data":"Genesis Block","prev":"0"*64,"nonce":0}],
-        "rdbms": [{"id":1,"item":"Laptop","owner":"Lab","price":50000}],
-        "nodes": {"Node A":True,"Node B":True,"Node C":True},
-        "mempool": [],
-        "balances": {"Alice":100.0,"Bob":100.0,"Carol":100.0,"Dave":100.0},
-        "wallet_balance": 5.0, "wallet_history": [],
-        "contract_created": False, "contract_deployed": False, "contract_store": {},
-        "medicines": [], "supply_ledger": [],
-        "proxy_value": 0, "proxy_version":"V1",
-        "syntax_vars": {}, "car_bookings": [], "lands": [], "kyc": {},
-    }
-    for k,v in defaults.items():
-        if k not in st.session_state: st.session_state[k]=v
-    for b in st.session_state.chain:
-        b["hash"] = h({k:v for k,v in b.items() if k!="hash"})
+    if "db" not in st.session_state:
+        st.session_state.db=[
+            {"ID":101,"Name":"Anu","Balance":5000},
+            {"ID":102,"Name":"Bala","Balance":6500},
+            {"ID":103,"Name":"Charan","Balance":4200},
+        ]
+    if "chain" not in st.session_state:
+        st.session_state.chain=[]
+        add_block("Genesis Block")
+    if "step" not in st.session_state: st.session_state.step=1
+    if "db_server" not in st.session_state: st.session_state.db_server=True
+    if "nodes" not in st.session_state: st.session_state.nodes=[True,True,True]
+    if "messages" not in st.session_state: st.session_state.messages=[]
 
 def add_block(data):
-    chain=st.session_state.chain
-    prev=chain[-1]["hash"] if chain else "0"*64
-    b={"index":len(chain),"timestamp":datetime.now().isoformat(timespec="seconds"),
-       "data":data,"prev":prev,"nonce":random.randint(0,999999)}
-    b["hash"]=h(b); chain.append(b); return b
-
-def chain_view(chain):
-    for b in chain:
-        st.markdown(f"""**Block {b['index']}** · `{short(b.get('hash',''))}`  
-Data: `{str(b.get('data'))[:120]}`  
-Prev: `{short(b.get('prev',''))}`""")
-        st.caption("↓ linked by previous hash")
-
-def reset_all():
-    for k in list(st.session_state.keys()): del st.session_state[k]
-    st.rerun()
-
-
-def classroom_panel(exp_name, aim, theory, procedure, observation, result):
-    tabs = st.tabs(["🎯 Aim", "📘 Theory", "🧪 Procedure", "🔎 Observation", "✅ Result"])
-    with tabs[0]: st.info(aim)
-    with tabs[1]: st.write(theory)
-    with tabs[2]:
-        for i, step in enumerate(procedure, 1):
-            st.write(f"**Step {i}.** {step}")
-    with tabs[3]: st.write(observation)
-    with tabs[4]: st.success(result)
-
-def quiz(key, question, options, answer, explanation):
-    choice = st.radio(question, options, key=key)
-    if st.button("Check answer", key="btn_"+key):
-        if choice == answer: st.success("Correct ✓")
-        else: st.error(f"Correct answer: {answer}")
-        st.caption(explanation)
-
-def report_download(exp_name, observations):
-    report = f"""BLOCKCHAIN & SMART CONTRACT VIRTUAL LAB
-Experiment: {exp_name}
-Date/Time: {datetime.now().strftime("%d-%m-%Y %H:%M")}
-
-OBSERVATIONS
-{observations}
-
-RESULT
-The experiment was completed using the Streamlit educational simulator.
-
-Note: This is a classroom simulation. No real cryptocurrency/private keys are required.
-"""
-    st.download_button("⬇️ Download Experiment Report", report,
-                       file_name=exp_name.lower().replace(" ","_").replace("/","_")+".txt",
-                       mime="text/plain")
+    prev=st.session_state.chain[-1]["hash"] if st.session_state.chain else "0"*64
+    block={"index":len(st.session_state.chain),"time":datetime.now().strftime("%H:%M:%S"),
+           "data":data,"previous_hash":prev}
+    block["hash"]=sha(json.dumps(block,sort_keys=True))
+    st.session_state.chain.append(block)
 
 init()
-st.title("⛓️ Blockchain & Smart Contract Virtual Lab")
-st.caption("Interactive Streamlit teaching simulations based on the learning objectives of the Virtual Labs Blockchain Lab.")
 
-EXPS = [
-"1. Blockchain vs Conventional Database",
-"2. Proof of Work vs Proof of Stake",
-"3. Double Spending Prevention",
-"4. Ethereum Wallet / MetaMask Transaction",
-"5. Create & Deploy a Smart Contract",
-"6. Smart Contract Automation – Pharma Supply Chain",
-"7. Solidity Syntax & Coding Process",
-"8. Advanced Smart Contract Writing",
-"9. Proxy Contract Approach",
-"10. Smart Contract Vulnerabilities",
-]
+st.markdown("""
+<style>
+.bigtitle {font-size:2.15rem;font-weight:800}
+.card {border:1px solid #ddd;border-radius:14px;padding:16px;margin:7px 0;background:#fff}
+.step {border-left:5px solid #777;padding:10px 14px;background:#f7f7f7;border-radius:8px}
+.small {font-size:.88rem;color:#666}
+div[data-testid="stMetric"] {border:1px solid #ddd;padding:12px;border-radius:12px}
+</style>
+""",unsafe_allow_html=True)
+
+st.markdown('<div class="bigtitle">⛓️ Blockchain vs Conventional Database</div>',unsafe_allow_html=True)
+st.write("An interactive, self-guided experiment. Follow the numbered steps; the application explains what happens after every action.")
+
 with st.sidebar:
-    exp=st.radio("Choose an experiment", EXPS)
-    st.divider()
-    st.info("Transactions are simulated locally. No real cryptocurrency or private keys are used.")
-    if st.button("Reset Lab State", use_container_width=True): reset_all()
+    st.header("Experiment Navigator")
+    sections=["1 · Understand","2 · Modify Data","3 · Verify Immutability","4 · Test Decentralization","5 · Compare Performance","6 · Conclusion & Quiz"]
+    selected=st.radio("Progress",sections,index=min(st.session_state.step-1,5))
+    st.progress(min(st.session_state.step/6,1.0))
+    st.caption(f"Recommended progress: Step {st.session_state.step} of 6")
+    if st.button("↻ Restart experiment"):
+        for k in ["db","chain","step","db_server","nodes","messages"]:
+            if k in st.session_state: del st.session_state[k]
+        st.rerun()
 
-
-with st.expander("👩‍🏫 How to use this Virtual Lab in class"):
-    st.markdown("""
-**Recommended student flow:** Pre-concept → Aim → Theory → Procedure → Interactive Simulation → Observation → Result → Quiz → Download Report.
-
-The simulations deliberately avoid real private keys and real cryptocurrency. For an advanced class, the local simulations can later be connected to a test network such as Sepolia.
-""")
-
-if exp.startswith("1."):
-    st.header(EXPS[0])
-    classroom_panel(EXPS[0],
-        "Compare a conventional database with a blockchain in terms of mutability, decentralization and transaction processing.",
-        "A conventional database is normally controlled by a central database service and permits authorized updates. A blockchain records transactions in linked blocks. Changing historical data changes its hash and breaks subsequent links.",
-        ["Observe the conventional database row.", "Modify its owner field.", "Append the same logical update to the blockchain.", "Disable nodes/server to compare availability.", "Run the performance simulation and compare observations."],
-        "Notice that the database row can be overwritten, whereas the blockchain demonstration appends a new historical record.",
-        "The student distinguishes mutable centralized storage from append-oriented distributed ledger behaviour.")
-    st.write("**Aim:** Compare immutability, decentralization and transaction-processing behaviour of a conventional database and a blockchain.")
-    tab1,tab2,tab3=st.tabs(["Immutability","Decentralization","Performance"])
-    with tab1:
-        c1,c2=st.columns(2)
-        with c1:
-            st.subheader("Conventional database")
-            st.dataframe(st.session_state.rdbms, use_container_width=True)
-            new_owner=st.text_input("Edit owner", value=st.session_state.rdbms[0]["owner"])
-            if st.button("UPDATE row"):
-                st.session_state.rdbms[0]["owner"]=new_owner
-                st.success("Existing row was overwritten.")
-        with c2:
-            st.subheader("Blockchain")
-            chain_view(st.session_state.chain[-4:])
-            data=st.text_input("New transaction / update", "Laptop ownership → Student")
-            if st.button("ADD as new block"):
-                add_block(data); st.success("History preserved; a new linked block was appended.")
-        st.info("Observation: a mutable table can overwrite a row; an append-only blockchain preserves prior records and links new records by hashes.")
-    with tab2:
-        c1,c2=st.columns(2)
-        with c1:
-            st.subheader("Network nodes")
-            for n,ok in list(st.session_state.nodes.items()):
-                st.session_state.nodes[n]=st.toggle(n, value=ok, key="node_"+n)
-            active=sum(st.session_state.nodes.values())
-            st.metric("Active blockchain replicas", active)
-        with c2:
-            central=st.toggle("Central database server online", True)
-            if st.button("Attempt transaction", key="decent_tx"):
-                st.success("Central DB: transaction accepted.") if central else st.error("Central DB unavailable: central server is down.")
-                st.success(f"Blockchain accepted by {active} active node(s).") if active else st.error("Blockchain: no active node.")
-    with tab3:
-        n=st.slider("Number of transactions",1,50,10)
-        if st.button("Run comparison"):
-            rdb=round(n*0.004,3); bc=round(n*0.12,3)
-            st.bar_chart({"Simulated seconds":{"RDBMS":rdb,"Blockchain":bc}})
-            st.write(f"RDBMS ≈ **{rdb}s**; sequential block confirmation ≈ **{bc}s**.")
-            st.caption("Teaching model only; real performance depends on architecture, consensus, batching, hardware and network.")
-
-elif exp.startswith("2."):
-    st.header(EXPS[1])
-    classroom_panel(EXPS[1],
-        "Understand the basic operating differences between Proof of Work and Proof of Stake.",
-        "PoW selects a block producer through computational work; PoS selects validators using stake-based mechanisms. Real blockchain implementations contain additional protocol rules beyond this simplified model.",
-        ["Select PoW or PoS.", "Create a transaction.", "Broadcast it to the mempool.", "For PoS, change stakeholder weights.", "Create the next block.", "Observe the selected producer and balances."],
-        "PoW emphasizes a mining/work race; the PoS demonstration changes selection probability according to configured stake.",
-        "The student explains the conceptual difference between mining-based and stake-based consensus.")
-    st.write("**Aim:** Compare validator/miner selection and block creation in Proof of Work and Proof of Stake.")
-    mode=st.radio("Consensus",["Proof of Work","Proof of Stake"],horizontal=True)
-    names=list(st.session_state.balances)
-    c1,c2=st.columns([1,1.4])
-    with c1:
-        sender=st.selectbox("Sender",names)
-        receiver=st.selectbox("Receiver",[x for x in names if x!=sender])
-        amt=st.number_input("Amount",1.0,100.0,10.0)
-        if mode=="Proof of Work":
-            difficulty=st.slider("Difficulty",1,5,2)
-        else:
-            stakes={}
-            st.caption("Stake weights")
-            for n in names: stakes[n]=st.number_input(f"{n} stake",1,100,25,key="stake"+n)
-        if st.button("Broadcast transaction"):
-            if amt<=st.session_state.balances[sender]:
-                st.session_state.mempool.append({"from":sender,"to":receiver,"amount":amt}); st.success("Added to mempool.")
-            else: st.error("Insufficient balance.")
-        if st.button("Create next block", type="primary"):
-            if not st.session_state.mempool: st.warning("Add a transaction first.")
-            else:
-                if mode=="Proof of Work":
-                    winner=random.choice(names); metric=f"Difficulty {difficulty}; simulated mining race"
-                else:
-                    winner=random.choices(names,weights=[stakes[n] for n in names])[0]; metric="selection weighted by stake"
-                txs=st.session_state.mempool.copy()
-                for t in txs:
-                    st.session_state.balances[t["from"]]-=t["amount"]; st.session_state.balances[t["to"]]+=t["amount"]
-                add_block({"consensus":mode,"producer":winner,"transactions":txs})
-                st.session_state.mempool=[]
-                st.success(f"{winner} produced the block ({metric}).")
-    with c2:
-        st.subheader("Mempool"); st.dataframe(st.session_state.mempool,use_container_width=True)
-        st.subheader("Balances"); st.dataframe([{"participant":k,"balance":v} for k,v in st.session_state.balances.items()],use_container_width=True)
-        st.subheader("Latest blocks"); chain_view(st.session_state.chain[-3:])
-
-elif exp.startswith("3."):
-    st.header(EXPS[2])
-    classroom_panel(EXPS[2],
-        "Demonstrate the double-spending problem and the role of confirmations.",
-        "A double spend attempts to use the same digital value in conflicting transactions. Consensus and confirmation depth help the network converge on one accepted transaction history.",
-        ["Set sender balance and duplicate-spend amount.", "Choose honest and secret mining strengths.", "Set confirmation depth.", "Run the competing-chain simulation.", "Compare chain lengths and accepted history."],
-        "A conflicting transaction does not automatically become valid merely because it was broadcast; the network must establish an accepted history.",
-        "The student relates confirmation depth and consensus to double-spend resistance.")
-    st.write("**Aim:** Demonstrate confirmation depth and competing-chain behaviour in a simplified double-spending scenario.")
-    bal=st.number_input("Sender balance",10,1000,100)
-    amt=st.number_input("Attempt to pay same coins twice",1,bal,40)
-    honest=st.slider("Honest miners",2,10,6); attacker=st.slider("Secret miners",1,9,2)
-    confirmations=st.slider("Confirmations required",1,8,4)
-    if st.button("Run double-spend simulation",type="primary"):
-        honest_blocks=max(confirmations+1,int(honest*random.uniform(.7,1.3)))
-        secret_blocks=max(1,int(attacker*random.uniform(.5,1.2)))
-        st.write(f"Two conflicting payments of **{amt} coins** are broadcast from a balance of **{bal}**.")
-        c1,c2=st.columns(2); c1.metric("Honest chain",f"{honest_blocks} blocks"); c2.metric("Secret chain",f"{secret_blocks} blocks")
-        if honest_blocks>secret_blocks and honest_blocks>=confirmations+1:
-            st.success("The honest history is selected in this simulation; the conflicting secret spend is rejected.")
-        else: st.warning("The secret fork is competitive in this run. Try more honest mining power or confirmation depth.")
-        st.caption("Conceptual model only; not a real attack-success probability calculator.")
-
-elif exp.startswith("4."):
-    st.header(EXPS[3])
-    classroom_panel(EXPS[3],
-        "Understand the lifecycle of an Ethereum wallet transaction.",
-        "A wallet manages keys and signs transactions. A public address may be shared; a private key or recovery phrase must remain secret. Transactions also involve network fees.",
-        ["Use the demo wallet only.", "Receive simulated test ETH.", "Enter a demo recipient.", "Review amount and gas.", "Confirm the transfer.", "Inspect transaction history."],
-        "The balance decreases by the transfer plus simulated gas, while the activity history records the transaction.",
-        "The student describes Prepare → Review → Sign → Broadcast → Validate → Confirm.")
-    st.write("**Aim:** Learn the Ethereum wallet transaction flow without real funds or credentials.")
-    st.warning("Never enter a real seed/recovery phrase or private key into this teaching app.")
-    c1,c2=st.columns([1,1.2])
-    with c1:
-        st.metric("Demo ETH balance",f"{st.session_state.wallet_balance:.4f} ETH")
-        action=st.selectbox("Wallet action",["Receive","Send","Buy / Faucet (simulated)"])
-        if action=="Receive":
-            st.code("0xDEMO1234567890ABCDEF1234567890ABCDEF1234")
-        elif action=="Send":
-            addr=st.text_input("Recipient public address","0xABCDEF...")
-            amount=st.number_input("ETH",0.001,10.0,0.1,step=0.01)
-            gas=st.number_input("Estimated gas fee",0.0001,0.1,0.002)
-            if st.button("Confirm demo transfer"):
-                if amount+gas<=st.session_state.wallet_balance:
-                    st.session_state.wallet_balance-=amount+gas
-                    st.session_state.wallet_history.append({"time":str(datetime.now()),"type":"SEND","to":addr,"amount":amount,"gas":gas,"status":"Confirmed","tx_hash":h([addr,amount,time.time()])})
-                    st.success("Demo transaction confirmed.")
-                else: st.error("Insufficient demo balance.")
-        else:
-            amount=st.number_input("Test funds",0.1,2.0,0.5)
-            if st.button("Add test funds"):
-                st.session_state.wallet_balance+=amount
-                st.session_state.wallet_history.append({"time":str(datetime.now()),"type":"FAUCET","amount":amount,"status":"Confirmed"})
-                st.success("Demo funds added.")
-    with c2:
-        st.subheader("Transaction lifecycle")
-        st.markdown("**Prepare → Review → Sign → Broadcast → Validate → Confirm**")
-        st.subheader("Activity"); st.dataframe(st.session_state.wallet_history[::-1],use_container_width=True)
-
-elif exp.startswith("5."):
-    st.header(EXPS[4])
-    classroom_panel(EXPS[4],
-        "Create, deploy and interact with a simple Solidity smart contract.",
-        "A smart contract is program logic deployed at a blockchain address. Read operations inspect state; state-changing operations create transactions.",
-        ["Read the Solidity contract.", "Create/compile the contract conceptually.", "Deploy it.", "Note the generated contract address.", "Call setValue.", "Call getValue and compare state."],
-        "Deployment creates a contract address; setValue changes stored state while getValue reads it.",
-        "The student demonstrates the smart-contract deployment and interaction lifecycle.")
-    st.write("**Aim:** Create, deploy and interact with a simple data-storage smart contract.")
-    solidity="""// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
-contract DataStore {
-    string private value;
-    function setValue(string memory v) public { value = v; }
-    function getValue() public view returns (string memory) { return value; }
-}"""
+if selected.startswith("1"):
+    st.header("Step 1 — Understand the Two Systems")
+    st.info("🎯 **Learning goal:** Identify the fundamental difference between a conventional database and a blockchain.")
     c1,c2=st.columns(2)
     with c1:
-        st.code(solidity,language="solidity")
-        if st.button("1. Create contract"): st.session_state.contract_created=True; st.success("Contract compiled conceptually.")
-        if st.button("2. Deploy contract",disabled=not st.session_state.contract_created):
-            st.session_state.contract_deployed=True; st.session_state.contract_address="0x"+h(time.time())[:40]
-            add_block({"type":"contract deployment","address":st.session_state.contract_address}); st.success("Deployed to simulated chain.")
+        st.subheader("🗄️ Conventional Database")
+        st.markdown("""A conventional database stores records in tables. An authorized application can **create, read, update or delete** records.
+
+**Simple idea:** when a row is updated, the old value may be replaced by the new value.""")
+        st.dataframe(st.session_state.db,use_container_width=True,hide_index=True)
+        st.caption("Think of this as a centrally managed bank/customer table.")
     with c2:
-        if st.session_state.contract_deployed:
-            st.code(st.session_state.contract_address)
-            key=st.text_input("Key","course"); val=st.text_input("Value","Blockchain Lab")
-            if st.button("setValue"):
-                st.session_state.contract_store[key]=val; add_block({"contract":st.session_state.contract_address,"set":{key:val}}); st.success("State update mined.")
-            if st.button("getValue"): st.info(st.session_state.contract_store.get(key,"No value stored"))
-            st.json(st.session_state.contract_store)
-        else: st.info("Create and deploy the contract first.")
+        st.subheader("⛓️ Blockchain")
+        st.markdown("""A blockchain stores records as **linked blocks**. Each block contains its own hash and the previous block's hash.
 
-elif exp.startswith("6."):
-    st.header(EXPS[5])
-    classroom_panel(EXPS[5],
-        "Use smart-contract concepts to trace pharmaceutical products through a supply chain.",
-        "A shared ledger can record provenance events such as manufacture, transfer, receipt and verification. Traceability depends on trustworthy input data as well as ledger integrity.",
-        ["Create a medicine batch.", "Record quantity and expiry.", "Transfer to distributor.", "Transfer to pharmacy.", "Verify the batch as a patient.", "Inspect the complete ledger."],
-        "Each transfer is appended rather than replacing the previous supply-chain event.",
-        "The student demonstrates provenance and traceability using a blockchain-style ledger.")
-    st.write("**Aim:** Trace a medicine batch from manufacturer through distributor and pharmacy to patient using an append-only ledger.")
-    stage=st.selectbox("Actor",["Manufacturer","Distributor","Pharmacy","Patient / Verification"])
-    if stage=="Manufacturer":
-        name=st.text_input("Medicine","DemoCure"); batch=st.text_input("Batch ID","BATCH-001"); qty=st.number_input("Quantity",1,10000,100)
-        expiry=st.date_input("Expiry",value=date.today().replace(year=date.today().year+1))
-        if st.button("Manufacture & record"):
-            rec={"medicine":name,"batch":batch,"quantity":qty,"expiry":str(expiry),"holder":"Manufacturer","status":"Manufactured"}
-            st.session_state.medicines.append(rec); st.session_state.supply_ledger.append({**rec,"time":str(datetime.now())}); st.success("Batch recorded.")
-    elif stage in ["Distributor","Pharmacy"]:
-        if not st.session_state.medicines: st.warning("Manufacture a batch first.")
+**Simple idea:** instead of silently replacing history, a new transaction can be appended to the ledger.""")
+        for b in st.session_state.chain:
+            st.markdown(f"""<div class="card"><b>Block {b['index']}</b><br>
+            Data: {b['data']}<br><span class="small">Hash: {b['hash'][:20]}…<br>
+            Previous: {b['previous_hash'][:20]}…</span></div>""",unsafe_allow_html=True)
+    st.success("💡 Key idea: Database → records can be updated. Blockchain → history is represented as linked records.")
+    if st.button("I understand — Continue →",type="primary"):
+        st.session_state.step=max(st.session_state.step,2); st.rerun()
+
+elif selected.startswith("2"):
+    st.header("Step 2 — Perform the Same Update in Both Systems")
+    st.info("🎯 Change Anu's balance from ₹5,000 to a new value and observe how each system records it.")
+    newbal=st.number_input("Enter Anu's new balance",min_value=0,value=7000,step=500)
+    c1,c2=st.columns(2)
+    with c1:
+        st.subheader("A. Update conventional database")
+        st.dataframe(st.session_state.db,use_container_width=True,hide_index=True)
+        if st.button("UPDATE database row",use_container_width=True):
+            old=st.session_state.db[0]["Balance"]; st.session_state.db[0]["Balance"]=newbal
+            st.success(f"Updated: ₹{old:,} → ₹{newbal:,}. The displayed row now contains the new value.")
+            st.session_state.messages.append("db")
+    with c2:
+        st.subheader("B. Record update on blockchain")
+        st.write("The blockchain simulation will append a transaction instead of editing the Genesis Block.")
+        if st.button("ADD transaction as new block",use_container_width=True):
+            add_block({"Account":101,"Action":"Balance Update","New Balance":newbal})
+            st.success(f"New Block {len(st.session_state.chain)-1} appended.")
+            st.session_state.messages.append("bc")
+        for b in st.session_state.chain[-3:]:
+            st.code(f"BLOCK {b['index']}\nData: {b['data']}\nHash: {b['hash'][:24]}...\nPrev: {b['previous_hash'][:24]}...")
+    if "db" in st.session_state.messages and "bc" in st.session_state.messages:
+        st.warning("🔎 **Observe:** the database exposes the latest row value. The blockchain shows the original block plus a newly appended update.")
+        if st.button("Observation complete — Continue →",type="primary"):
+            st.session_state.step=max(st.session_state.step,3); st.rerun()
+
+elif selected.startswith("3"):
+    st.header("Step 3 — Why Hash Linking Makes Tampering Detectable")
+    st.info("🎯 Change a historical block locally and see what happens to its hash relationship.")
+    if len(st.session_state.chain)<2:
+        st.warning("Create a blockchain update in Step 2 first.")
+    else:
+        b=st.session_state.chain[1]
+        st.write("Current Block 1")
+        st.code(json.dumps(b,indent=2))
+        fake=st.text_input("Try changing its stored data","Tampered balance = 999999")
+        original=b["hash"]; changed=sha(json.dumps({**b,"data":fake,"hash":original},sort_keys=True))
+        if st.button("Recalculate after tampering"):
+            st.metric("Original hash",original[:18]+"…")
+            st.metric("Hash after changing data",changed[:18]+"…")
+            if changed!=original:
+                st.error("Hash mismatch detected. Changing historical content changes the block fingerprint.")
+                st.success("This is why hash linking helps make unauthorized historical changes detectable.")
+        if st.button("Continue to decentralization →"):
+            st.session_state.step=max(st.session_state.step,4); st.rerun()
+
+elif selected.startswith("4"):
+    st.header("Step 4 — Centralized vs Distributed Availability")
+    st.info("🎯 Simulate failures and observe whether each system still has an available copy.")
+    c1,c2=st.columns(2)
+    with c1:
+        st.subheader("Central Database")
+        st.session_state.db_server=st.toggle("Central server ON",value=st.session_state.db_server)
+        if st.session_state.db_server:
+            st.success("Server available → application can access the database.")
         else:
-            batch=st.selectbox("Batch",[m["batch"] for m in st.session_state.medicines])
-            if st.button(f"Transfer to {stage}"):
-                m=next(x for x in st.session_state.medicines if x["batch"]==batch); m["holder"]=stage; m["status"]=f"Received by {stage}"
-                st.session_state.supply_ledger.append({**m,"time":str(datetime.now())}); st.success("Transfer appended.")
-    else:
-        batch=st.text_input("Batch ID to verify")
-        if st.button("Verify"):
-            rows=[x for x in st.session_state.supply_ledger if x["batch"]==batch]
-            if rows: st.success("Batch found."); st.dataframe(rows,use_container_width=True)
-            else: st.error("Batch not found.")
-    st.subheader("Supply-chain ledger"); st.dataframe(st.session_state.supply_ledger,use_container_width=True)
+            st.error("Server unavailable → this simplified centralized service cannot answer requests.")
+    with c2:
+        st.subheader("Blockchain Network")
+        for i in range(3):
+            st.session_state.nodes[i]=st.toggle(f"Node {i+1} online",value=st.session_state.nodes[i],key=f"n{i}")
+        active=sum(st.session_state.nodes)
+        if active:
+            st.success(f"{active} replica node(s) remain available.")
+        else:
+            st.error("All nodes are offline.")
+    st.markdown("""**What should you notice?**  
+A centralized design can have a central service dependency. A distributed ledger maintains replicated copies across participating nodes. Real systems may use redundancy, clusters and consensus rules, so this is a conceptual comparison rather than a claim that every database has a single server.""")
+    if st.button("Continue to performance →"):
+        st.session_state.step=max(st.session_state.step,5); st.rerun()
 
-elif exp.startswith("7."):
-    st.header(EXPS[6])
-    classroom_panel(EXPS[6],
-        "Learn fundamental Solidity constructs used in smart contracts.",
-        "Solidity supports state variables, functions, mappings, arrays, structs, events and validation statements. State-changing calls differ from read-only view calls.",
-        ["Select a Solidity concept.", "Study the syntax example.", "Create a demo state variable.", "Execute a state update.", "Observe the resulting state."],
-        "The sandbox shows how contract state can be represented and changed through function calls.",
-        "The student recognizes common Solidity syntax and state-management constructs.")
-    st.write("**Aim:** Introduce Solidity variables, functions, arrays, mappings, structs, events and validation.")
-    topic=st.selectbox("Concept",["State variable","Function","Mapping","Array","Struct","Event","require / validation"])
-    examples={"State variable":"uint256 public count = 0;","Function":"function increment() public { count += 1; }",
-    "Mapping":"mapping(address => uint256) public balances;","Array":"address[] public members;",
-    "Struct":"struct Student { uint id; string name; }","Event":"event Updated(address indexed by, uint value);",
-    "require / validation":'require(msg.value > 0, "Value must be positive");'}
-    st.code(examples[topic],language="solidity")
-    st.markdown("### Mini execution sandbox")
-    name=st.text_input("Variable name","score"); value=st.number_input("uint value",0,100000,10)
-    if st.button("Execute state update"): st.session_state.syntax_vars[name]=value; st.success("State-changing function simulated.")
-    st.json(st.session_state.syntax_vars)
-    st.caption("A view read does not modify state; a state-changing call normally becomes a transaction and consumes gas.")
-
-elif exp.startswith("8."):
-    st.header(EXPS[7])
-    classroom_panel(EXPS[7],
-        "Apply Solidity data structures to representative decentralized application scenarios.",
-        "Mappings provide keyed lookup, arrays maintain collections and structs group related fields. These constructs can model assets, identities and application records.",
-        ["Choose Car Rental, Land Registry or KYC.", "Enter the requested data.", "Execute the simulated contract operation.", "Inspect the stored application state.", "Relate each data item to mapping/array/struct concepts."],
-        "The same Solidity structures can support different application domains.",
-        "The student applies Solidity structures to simple decentralized application models.")
-    st.write("**Aim:** Apply mappings, arrays and structs in small smart-contract application patterns.")
-    case=st.radio("Application",["Car Rental","Land Registry","KYC"],horizontal=True)
-    if case=="Car Rental":
-        renter=st.text_input("Renter","Alice"); car=st.selectbox("Car",["EV-101","EV-202","EV-303"]); days=st.slider("Days",1,30,2)
-        if st.button("Book car"): st.session_state.car_bookings.append({"renter":renter,"car":car,"days":days,"cost":days*50})
-        st.dataframe(st.session_state.car_bookings,use_container_width=True)
-    elif case=="Land Registry":
-        land=st.text_input("Land ID","TN-001"); owner=st.text_input("New owner","Alice")
-        if st.button("Register / transfer"):
-            old=next((x["owner"] for x in st.session_state.lands if x["land"]==land),None)
-            st.session_state.lands=[x for x in st.session_state.lands if x["land"]!=land]; st.session_state.lands.append({"land":land,"owner":owner,"previous":old})
-        st.dataframe(st.session_state.lands,use_container_width=True)
-    else:
-        addr=st.text_input("Wallet address","0xDEMO"); verified=st.checkbox("KYC verified")
-        if st.button("Update KYC"): st.session_state.kyc[addr]=verified
-        st.json(st.session_state.kyc)
-    st.info("Mappings → keyed lookup; arrays → collections; structs → grouped records.")
-
-elif exp.startswith("9."):
-    st.header(EXPS[8])
-    classroom_panel(EXPS[8],
-        "Understand the purpose of a proxy contract and upgradeable logic.",
-        "A proxy can retain a stable address and storage while forwarding execution to an implementation contract. Upgrades require strict access control and storage-layout compatibility.",
-        ["Observe the proxy address and V1 implementation.", "Store a value through the proxy.", "Upgrade to V2.", "Call the same operation again.", "Observe that proxy storage remains while logic changes."],
-        "The proxy address/storage remains stable even when the demonstration changes implementation logic.",
-        "The student explains the basic proxy/implementation relationship.")
-    st.write("**Aim:** Show how a proxy keeps an address/storage interface stable while logic can be upgraded.")
-    c1,c2,c3=st.columns(3); c1.metric("Proxy address","0xPROXY-DEMO"); c2.metric("Implementation",st.session_state.proxy_version); c3.metric("Stored value",st.session_state.proxy_value)
-    x=st.number_input("Input",0,1000,5)
-    if st.button("Call setValue through proxy"):
-        st.session_state.proxy_value=x if st.session_state.proxy_version=="V1" else x*2
-        st.success("Delegate-style call simulated. Storage remains with proxy.")
-    if st.button("Upgrade V1 → V2"): st.session_state.proxy_version="V2"; st.success("Logic upgraded; stored value retained.")
-    st.code("""Proxy (stable address + storage)
-    │ delegatecall
-    ├── Logic V1: setValue(x) = x
-    └── Logic V2: setValue(x) = x * 2""")
-    st.warning("Real upgradeable contracts require careful storage-layout compatibility and access control.")
+elif selected.startswith("5"):
+    st.header("Step 5 — Compare Transaction Processing")
+    st.info("🎯 Observe why consensus/validation can add processing overhead compared with a simple centralized write.")
+    n=st.slider("Transactions to simulate",1,100,20)
+    consensus=st.slider("Blockchain validation overhead per transaction (ms)",20,300,100)
+    if st.button("▶ Run simulation",type="primary"):
+        db_ms=n*5
+        bc_ms=n*(5+consensus)
+        st.session_state.perf=(db_ms,bc_ms,n)
+    if "perf" in st.session_state:
+        db_ms,bc_ms,n=st.session_state.perf
+        st.bar_chart({"Milliseconds":{"Conventional DB":db_ms,"Blockchain":bc_ms}})
+        c1,c2=st.columns(2)
+        c1.metric("Conventional DB",f"{db_ms} ms")
+        c2.metric("Blockchain simulation",f"{bc_ms} ms")
+        st.warning("Do not interpret these numbers as real benchmarks. They demonstrate the *concept* that validation/consensus introduces additional work.")
+        st.success("💡 Trade-off: blockchain may accept extra coordination cost to obtain shared, verifiable transaction history.")
+        if st.button("Go to conclusion →"):
+            st.session_state.step=6; st.rerun()
 
 else:
-    st.header(EXPS[9])
-    classroom_panel(EXPS[9],
-        "Identify common smart-contract security problems and appropriate defensive concepts.",
-        "Smart contracts require careful ordering of external calls, checked arithmetic, access control and an understanding that public-chain storage is not confidential.",
-        ["Choose a vulnerability.", "Inspect the vulnerable concept.", "Run the safe local demonstration.", "Observe the consequence.", "Study the mitigation shown by the application."],
-        "Security failures can arise from contract logic even when the blockchain itself is operating correctly.",
-        "The student identifies vulnerability patterns and corresponding mitigation principles.")
-    st.write("**Aim:** Safely demonstrate common smart-contract vulnerability concepts and mitigations in a local model.")
-    vuln=st.selectbox("Vulnerability",["Re-entrancy","Arithmetic overflow / underflow","'Private' on-chain data","Access control"])
-    if vuln=="Re-entrancy":
-        st.code("""// Vulnerable ordering (concept)
-(bool ok,) = msg.sender.call{value: amount}("");
-balances[msg.sender] -= amount;
+    st.header("Step 6 — Conclusion & Self-Check")
+    st.success("""### Experiment conclusion
+You demonstrated three major differences:
 
-// Safer ordering
-balances[msg.sender] -= amount;
-(bool ok,) = msg.sender.call{value: amount}("");""",language="solidity")
-        bal=st.number_input("Contract balance",1,100,10)
-        if st.button("Simulate vulnerable callback"):
-            st.error(f"An external callback could re-enter before the balance update and attempt repeated withdrawals from {bal} units.")
-            st.success("Mitigation: Checks-Effects-Interactions and/or a reentrancy guard.")
-    elif vuln=="Arithmetic overflow / underflow":
-        x=st.number_input("8-bit demo value",0,255,250); add=st.number_input("Add",0,255,10)
-        if st.button("Compare arithmetic"):
-            st.write(f"Unchecked 8-bit wraparound model: **{x} + {add} → {(x+add)%256}**")
-            if x+add>255: st.success("Solidity 0.8+ checked arithmetic would revert by default rather than silently wrap.")
-    elif vuln=="'Private' on-chain data":
-        secret=st.text_input("Demo 'private' value","exam-answer")
-        if st.button("Store demo value"):
-            st.code(secret); st.warning("`private` restricts Solidity-level access; public-chain storage should not be treated as confidential.")
-            st.success("Do not store secrets on a public chain; use appropriate off-chain/encryption/commitment designs.")
-    else:
-        owner=st.text_input("Owner","0xOWNER"); caller=st.text_input("Caller","0xALICE")
-        if st.button("Attempt admin action"):
-            st.success("Authorized.") if caller==owner else st.error("Rejected by owner/role check.")
-        st.code('require(msg.sender == owner, "Not authorized");',language="solidity")
+**1. Data modification:** a conventional database can directly update a record; a blockchain-style ledger appends transaction history.
 
+**2. Integrity:** hash-linked blocks make historical modification detectable.
 
-st.subheader("📝 Quick Knowledge Check")
-quiz("q_"+exp[:2],
-     "Which statement best describes a blockchain transaction history in this simulator?",
-     ["Historical blocks are freely overwritten", "New records are appended and linked using hashes", "All data is automatically secret"],
-     "New records are appended and linked using hashes",
-     "Hash-linked blocks make historical modification detectable; confidentiality is a separate concern.")
+**3. Architecture:** conventional applications are often centrally administered, while blockchains replicate a ledger across participating nodes.
 
-st.subheader("📄 Student Record")
-student_obs = st.text_area("Enter your observation / inference before downloading the report",
-                           placeholder="Example: I observed that changing a previous record changes the hash relationship...")
-report_download(exp, student_obs)
+Neither technology is universally “better.” The correct choice depends on the application, trust model, performance requirements and need for shared verifiability.""")
+    st.subheader("🧠 Check your understanding")
+    q1=st.radio("1. What happens in our blockchain simulation when account data changes?",
+                ["The old block is silently overwritten","A new block is appended","All blocks are deleted"],index=None)
+    q2=st.radio("2. Why does modifying block data matter?",
+                ["It changes the block hash","It increases RAM automatically","It hides the block"],index=None)
+    q3=st.radio("3. Which is the best conclusion?",
+                ["Blockchain is always better","Databases are always better","The suitable technology depends on system requirements"],index=None)
+    if st.button("Submit answers",type="primary"):
+        score=sum([q1=="A new block is appended",q2=="It changes the block hash",q3=="The suitable technology depends on system requirements"])
+        st.metric("Score",f"{score}/3")
+        if score==3: st.balloons(); st.success("Excellent. You have completed the experiment.")
+        else: st.info("Review the relevant steps and try again.")
+    st.subheader("📝 Student Observation")
+    obs=st.text_area("Write what you learned in 2–3 sentences")
+    report=f"""VIRTUAL LAB RECORD
+Experiment: Blockchain vs Conventional Database
+Date: {datetime.now().strftime("%d-%m-%Y")}
+
+Student Observation:
+{obs}
+
+Key Result:
+A conventional database supports direct record updates, while the blockchain simulation appends hash-linked transaction history. Distributed replication and validation introduce different availability and performance characteristics.
+"""
+    st.download_button("⬇️ Download Lab Record",report,"blockchain_vs_database_lab_record.txt","text/plain")
 
 st.divider()
-st.caption("Educational simulator. It does not reproduce Virtual Labs source code/assets and does not connect to a real blockchain by default.")
+st.caption("Self-contained educational simulation. No real blockchain account, cryptocurrency, private key or external database is required.")
