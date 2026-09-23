@@ -47,6 +47,41 @@ def reset_all():
     for k in list(st.session_state.keys()): del st.session_state[k]
     st.rerun()
 
+
+def classroom_panel(exp_name, aim, theory, procedure, observation, result):
+    tabs = st.tabs(["🎯 Aim", "📘 Theory", "🧪 Procedure", "🔎 Observation", "✅ Result"])
+    with tabs[0]: st.info(aim)
+    with tabs[1]: st.write(theory)
+    with tabs[2]:
+        for i, step in enumerate(procedure, 1):
+            st.write(f"**Step {i}.** {step}")
+    with tabs[3]: st.write(observation)
+    with tabs[4]: st.success(result)
+
+def quiz(key, question, options, answer, explanation):
+    choice = st.radio(question, options, key=key)
+    if st.button("Check answer", key="btn_"+key):
+        if choice == answer: st.success("Correct ✓")
+        else: st.error(f"Correct answer: {answer}")
+        st.caption(explanation)
+
+def report_download(exp_name, observations):
+    report = f"""BLOCKCHAIN & SMART CONTRACT VIRTUAL LAB
+Experiment: {exp_name}
+Date/Time: {datetime.now().strftime("%d-%m-%Y %H:%M")}
+
+OBSERVATIONS
+{observations}
+
+RESULT
+The experiment was completed using the Streamlit educational simulator.
+
+Note: This is a classroom simulation. No real cryptocurrency/private keys are required.
+"""
+    st.download_button("⬇️ Download Experiment Report", report,
+                       file_name=exp_name.lower().replace(" ","_").replace("/","_")+".txt",
+                       mime="text/plain")
+
 init()
 st.title("⛓️ Blockchain & Smart Contract Virtual Lab")
 st.caption("Interactive Streamlit teaching simulations based on the learning objectives of the Virtual Labs Blockchain Lab.")
@@ -69,8 +104,22 @@ with st.sidebar:
     st.info("Transactions are simulated locally. No real cryptocurrency or private keys are used.")
     if st.button("Reset Lab State", use_container_width=True): reset_all()
 
+
+with st.expander("👩‍🏫 How to use this Virtual Lab in class"):
+    st.markdown("""
+**Recommended student flow:** Pre-concept → Aim → Theory → Procedure → Interactive Simulation → Observation → Result → Quiz → Download Report.
+
+The simulations deliberately avoid real private keys and real cryptocurrency. For an advanced class, the local simulations can later be connected to a test network such as Sepolia.
+""")
+
 if exp.startswith("1."):
     st.header(EXPS[0])
+    classroom_panel(EXPS[0],
+        "Compare a conventional database with a blockchain in terms of mutability, decentralization and transaction processing.",
+        "A conventional database is normally controlled by a central database service and permits authorized updates. A blockchain records transactions in linked blocks. Changing historical data changes its hash and breaks subsequent links.",
+        ["Observe the conventional database row.", "Modify its owner field.", "Append the same logical update to the blockchain.", "Disable nodes/server to compare availability.", "Run the performance simulation and compare observations."],
+        "Notice that the database row can be overwritten, whereas the blockchain demonstration appends a new historical record.",
+        "The student distinguishes mutable centralized storage from append-oriented distributed ledger behaviour.")
     st.write("**Aim:** Compare immutability, decentralization and transaction-processing behaviour of a conventional database and a blockchain.")
     tab1,tab2,tab3=st.tabs(["Immutability","Decentralization","Performance"])
     with tab1:
@@ -112,6 +161,12 @@ if exp.startswith("1."):
 
 elif exp.startswith("2."):
     st.header(EXPS[1])
+    classroom_panel(EXPS[1],
+        "Understand the basic operating differences between Proof of Work and Proof of Stake.",
+        "PoW selects a block producer through computational work; PoS selects validators using stake-based mechanisms. Real blockchain implementations contain additional protocol rules beyond this simplified model.",
+        ["Select PoW or PoS.", "Create a transaction.", "Broadcast it to the mempool.", "For PoS, change stakeholder weights.", "Create the next block.", "Observe the selected producer and balances."],
+        "PoW emphasizes a mining/work race; the PoS demonstration changes selection probability according to configured stake.",
+        "The student explains the conceptual difference between mining-based and stake-based consensus.")
     st.write("**Aim:** Compare validator/miner selection and block creation in Proof of Work and Proof of Stake.")
     mode=st.radio("Consensus",["Proof of Work","Proof of Stake"],horizontal=True)
     names=list(st.session_state.balances)
@@ -150,6 +205,12 @@ elif exp.startswith("2."):
 
 elif exp.startswith("3."):
     st.header(EXPS[2])
+    classroom_panel(EXPS[2],
+        "Demonstrate the double-spending problem and the role of confirmations.",
+        "A double spend attempts to use the same digital value in conflicting transactions. Consensus and confirmation depth help the network converge on one accepted transaction history.",
+        ["Set sender balance and duplicate-spend amount.", "Choose honest and secret mining strengths.", "Set confirmation depth.", "Run the competing-chain simulation.", "Compare chain lengths and accepted history."],
+        "A conflicting transaction does not automatically become valid merely because it was broadcast; the network must establish an accepted history.",
+        "The student relates confirmation depth and consensus to double-spend resistance.")
     st.write("**Aim:** Demonstrate confirmation depth and competing-chain behaviour in a simplified double-spending scenario.")
     bal=st.number_input("Sender balance",10,1000,100)
     amt=st.number_input("Attempt to pay same coins twice",1,bal,40)
@@ -167,6 +228,12 @@ elif exp.startswith("3."):
 
 elif exp.startswith("4."):
     st.header(EXPS[3])
+    classroom_panel(EXPS[3],
+        "Understand the lifecycle of an Ethereum wallet transaction.",
+        "A wallet manages keys and signs transactions. A public address may be shared; a private key or recovery phrase must remain secret. Transactions also involve network fees.",
+        ["Use the demo wallet only.", "Receive simulated test ETH.", "Enter a demo recipient.", "Review amount and gas.", "Confirm the transfer.", "Inspect transaction history."],
+        "The balance decreases by the transfer plus simulated gas, while the activity history records the transaction.",
+        "The student describes Prepare → Review → Sign → Broadcast → Validate → Confirm.")
     st.write("**Aim:** Learn the Ethereum wallet transaction flow without real funds or credentials.")
     st.warning("Never enter a real seed/recovery phrase or private key into this teaching app.")
     c1,c2=st.columns([1,1.2])
@@ -198,6 +265,12 @@ elif exp.startswith("4."):
 
 elif exp.startswith("5."):
     st.header(EXPS[4])
+    classroom_panel(EXPS[4],
+        "Create, deploy and interact with a simple Solidity smart contract.",
+        "A smart contract is program logic deployed at a blockchain address. Read operations inspect state; state-changing operations create transactions.",
+        ["Read the Solidity contract.", "Create/compile the contract conceptually.", "Deploy it.", "Note the generated contract address.", "Call setValue.", "Call getValue and compare state."],
+        "Deployment creates a contract address; setValue changes stored state while getValue reads it.",
+        "The student demonstrates the smart-contract deployment and interaction lifecycle.")
     st.write("**Aim:** Create, deploy and interact with a simple data-storage smart contract.")
     solidity="""// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
@@ -225,6 +298,12 @@ contract DataStore {
 
 elif exp.startswith("6."):
     st.header(EXPS[5])
+    classroom_panel(EXPS[5],
+        "Use smart-contract concepts to trace pharmaceutical products through a supply chain.",
+        "A shared ledger can record provenance events such as manufacture, transfer, receipt and verification. Traceability depends on trustworthy input data as well as ledger integrity.",
+        ["Create a medicine batch.", "Record quantity and expiry.", "Transfer to distributor.", "Transfer to pharmacy.", "Verify the batch as a patient.", "Inspect the complete ledger."],
+        "Each transfer is appended rather than replacing the previous supply-chain event.",
+        "The student demonstrates provenance and traceability using a blockchain-style ledger.")
     st.write("**Aim:** Trace a medicine batch from manufacturer through distributor and pharmacy to patient using an append-only ledger.")
     stage=st.selectbox("Actor",["Manufacturer","Distributor","Pharmacy","Patient / Verification"])
     if stage=="Manufacturer":
@@ -250,6 +329,12 @@ elif exp.startswith("6."):
 
 elif exp.startswith("7."):
     st.header(EXPS[6])
+    classroom_panel(EXPS[6],
+        "Learn fundamental Solidity constructs used in smart contracts.",
+        "Solidity supports state variables, functions, mappings, arrays, structs, events and validation statements. State-changing calls differ from read-only view calls.",
+        ["Select a Solidity concept.", "Study the syntax example.", "Create a demo state variable.", "Execute a state update.", "Observe the resulting state."],
+        "The sandbox shows how contract state can be represented and changed through function calls.",
+        "The student recognizes common Solidity syntax and state-management constructs.")
     st.write("**Aim:** Introduce Solidity variables, functions, arrays, mappings, structs, events and validation.")
     topic=st.selectbox("Concept",["State variable","Function","Mapping","Array","Struct","Event","require / validation"])
     examples={"State variable":"uint256 public count = 0;","Function":"function increment() public { count += 1; }",
@@ -265,6 +350,12 @@ elif exp.startswith("7."):
 
 elif exp.startswith("8."):
     st.header(EXPS[7])
+    classroom_panel(EXPS[7],
+        "Apply Solidity data structures to representative decentralized application scenarios.",
+        "Mappings provide keyed lookup, arrays maintain collections and structs group related fields. These constructs can model assets, identities and application records.",
+        ["Choose Car Rental, Land Registry or KYC.", "Enter the requested data.", "Execute the simulated contract operation.", "Inspect the stored application state.", "Relate each data item to mapping/array/struct concepts."],
+        "The same Solidity structures can support different application domains.",
+        "The student applies Solidity structures to simple decentralized application models.")
     st.write("**Aim:** Apply mappings, arrays and structs in small smart-contract application patterns.")
     case=st.radio("Application",["Car Rental","Land Registry","KYC"],horizontal=True)
     if case=="Car Rental":
@@ -285,6 +376,12 @@ elif exp.startswith("8."):
 
 elif exp.startswith("9."):
     st.header(EXPS[8])
+    classroom_panel(EXPS[8],
+        "Understand the purpose of a proxy contract and upgradeable logic.",
+        "A proxy can retain a stable address and storage while forwarding execution to an implementation contract. Upgrades require strict access control and storage-layout compatibility.",
+        ["Observe the proxy address and V1 implementation.", "Store a value through the proxy.", "Upgrade to V2.", "Call the same operation again.", "Observe that proxy storage remains while logic changes."],
+        "The proxy address/storage remains stable even when the demonstration changes implementation logic.",
+        "The student explains the basic proxy/implementation relationship.")
     st.write("**Aim:** Show how a proxy keeps an address/storage interface stable while logic can be upgraded.")
     c1,c2,c3=st.columns(3); c1.metric("Proxy address","0xPROXY-DEMO"); c2.metric("Implementation",st.session_state.proxy_version); c3.metric("Stored value",st.session_state.proxy_value)
     x=st.number_input("Input",0,1000,5)
@@ -300,6 +397,12 @@ elif exp.startswith("9."):
 
 else:
     st.header(EXPS[9])
+    classroom_panel(EXPS[9],
+        "Identify common smart-contract security problems and appropriate defensive concepts.",
+        "Smart contracts require careful ordering of external calls, checked arithmetic, access control and an understanding that public-chain storage is not confidential.",
+        ["Choose a vulnerability.", "Inspect the vulnerable concept.", "Run the safe local demonstration.", "Observe the consequence.", "Study the mitigation shown by the application."],
+        "Security failures can arise from contract logic even when the blockchain itself is operating correctly.",
+        "The student identifies vulnerability patterns and corresponding mitigation principles.")
     st.write("**Aim:** Safely demonstrate common smart-contract vulnerability concepts and mitigations in a local model.")
     vuln=st.selectbox("Vulnerability",["Re-entrancy","Arithmetic overflow / underflow","'Private' on-chain data","Access control"])
     if vuln=="Re-entrancy":
@@ -329,6 +432,19 @@ balances[msg.sender] -= amount;
         if st.button("Attempt admin action"):
             st.success("Authorized.") if caller==owner else st.error("Rejected by owner/role check.")
         st.code('require(msg.sender == owner, "Not authorized");',language="solidity")
+
+
+st.subheader("📝 Quick Knowledge Check")
+quiz("q_"+exp[:2],
+     "Which statement best describes a blockchain transaction history in this simulator?",
+     ["Historical blocks are freely overwritten", "New records are appended and linked using hashes", "All data is automatically secret"],
+     "New records are appended and linked using hashes",
+     "Hash-linked blocks make historical modification detectable; confidentiality is a separate concern.")
+
+st.subheader("📄 Student Record")
+student_obs = st.text_area("Enter your observation / inference before downloading the report",
+                           placeholder="Example: I observed that changing a previous record changes the hash relationship...")
+report_download(exp, student_obs)
 
 st.divider()
 st.caption("Educational simulator. It does not reproduce Virtual Labs source code/assets and does not connect to a real blockchain by default.")
